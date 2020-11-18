@@ -1,6 +1,7 @@
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+import random
 
 
 class Adaline:
@@ -22,7 +23,7 @@ class Adaline:
         """
         initializes weights for each input as 0.1.
         """
-        self.weights.extend(0.1 for i in range(len(self.inputs)))
+        self.weights.extend(random.random() for i in range(len(self.inputs)))
 
     def calc_error(self, desired, actual):
         """
@@ -31,13 +32,16 @@ class Adaline:
         :param actual: Actual output given by Adaline
         :return: error amount
         """
-        return 0.5*(desired - actual)**2
+        return desired-actual
 
-    def calc_output(self):
-        out = []
-        for i in range(len(self.inputs)):
-            out.append(self.inputs[i] * self.weights[i])
-        return out
+    def calc_output(self, inputs=None):
+        if not inputs:
+            inputs = self.inputs
+        # otherwise testing
+        sum = 0
+        for j in range(len(inputs)):
+            sum += inputs[j] * self.weights[j]
+        return sum
 
     def change_in_weight(self, desired, actual, inp):
         """
@@ -47,7 +51,8 @@ class Adaline:
         :param inp: input
         :return: change in weight
         """
-        change = self.learning_rate * (desired - actual) * inp
+        change = self.learning_rate * self.calc_error(desired,actual) * inp
+
         return change
 
     def update_weights(self, desired, actual, inp):
@@ -57,14 +62,34 @@ class Adaline:
         :param actual: list of actual outputs given by the network
         :param inp: list of inputs
         """
-        for i in range(len(self.weights)):
-            self.weights[i] += self.change_in_weight(desired[i], actual[i], inp[i])
+        for i in range(len(inp)):
+            self.weights[i] += self.change_in_weight(desired, actual, inp[i])
 
-    def plot(self):
-        plt.title("Inputs:Green\nTesting:Red\nOutput:Blue")
-        plt.plot(self.inputs, "g-")
-        plt.plot(self.desired, "r-")
-        plt.plot(self.output, "b.")
+    def test(self, inputs, desireds):
+        """
+        Test the Adaline with given inputs
+        :param inputs: testing inputs
+        :param desireds: desired outputs for testing inputs
+        """
+        outputs = []
+        for i in inputs:
+            outputs.append(self.calc_output(i))
+        self.plot(inputs, outputs, desireds)
+
+    def plot(self, inputs=None, outputs=None, desireds=None):
+        """
+        plot the input values, testing values and output values given by adaline
+        """
+        if not inputs:
+            inputs = self.inputs
+        if not outputs:
+            outputs = self.output
+        if not desireds:
+            desireds = self.desired
+        plt.title("Inputs:Green\nDesired:Red\nOutput:Blue")
+        #plt.plot(inputs, "g-")
+        plt.plot(desireds, "r-")
+        plt.plot(outputs, "b-.")
         plt.show()
 
     def run(self):
@@ -72,38 +97,45 @@ class Adaline:
         Run the Adaline for iteratrions amount. calculates output for each input and updates weight accordingly
         after iterations plots the input, desired, and output
         """
-        for i in range(self.iterations):
-            for j in range(len(self.inputs)):
-                self.output = self.calc_output()
-                self.update_weights(self.desired,self.output,self.inputs)
+        for iteration in range(self.iterations):
+            self.output = []
+            for i in range(len(self.inputs)):
+                self.output.append(self.calc_output(self.inputs[i]))
+                self.update_weights(self.desired[i], self.output[i], self.inputs[i])
         self.plot()
 
 
 def testing(t):
-    # x(t)=cos[2t*cos(t)].
+    """Used in generating testing input for testing purposes."""
     x = math.cos(2*t*math.cos(t))
     return x
 
 
 def identification(t):
-    #  x(t)=sin[10t*sin(t)],
+    """Used in generating input for testing"""
     x = math.sin(10*t*math.sin(t))
     return x
 
 
-def input_signal(t, id=True):
-    # y(t)=x(t)+0.5x(t-1)-1.5x(t-2)
+def y_signal(t, id=True):
+    """Used for generating the desired output for input and testing input for testing purposes."""
     if id == True:
         y = identification(t) + 0.5*identification(t-1) - 1.5 * identification(t-2)
     else:
-        y = testing(t) + 0.5 * identification(t - 1) - 1.5 * identification(t - 2)
+        y = testing(t) + 0.5*testing(t-1) - 1.5 * testing(t-2)
     return y
 
-
+# generate inputs and testing inputs
 inputs = [[],[]]
+test_inputs = [[],[]]
 steps = np.arange(0,5,0.01)
-for i in steps:
-    inputs[0].append(input_signal(i))
-    inputs[1].append(input_signal(i, False))
 
-Adaline(0.1,100,inputs)
+for i in steps:
+    inputs[0].append([identification(i), identification(i-1), identification(i-2)])
+    inputs[1].append(y_signal(i, True))
+    test_inputs[0].append([testing(i), testing(i-1), testing(i-2)])
+    test_inputs[1].append(y_signal(i, False))
+# run adaline and test it
+adaline = Adaline(0.1,100,inputs)
+
+adaline.test(test_inputs[0], test_inputs[1])
