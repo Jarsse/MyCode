@@ -22,25 +22,18 @@ try:
     f = open(fileName, "r")
     fNew = open(newFileName, "w+")
     if f.readable():
-        # read first line and continue while loop while there are lines
         line = f.readline()
         while line:
-            # don't write line if it contains "?"
             if not line.__contains__(args.get("emptyMark")):
-                # remove ID column
                 splitted = line.split(",")
                 splitted.pop(0)
                 if fNew.writable():
                     st = ""
                     for txt in splitted:
                         st += txt + ","
-                    # remove last ","
                     st = st[:-1]
-                    # write line to new file
                     fNew.write(st)
-            # read next line
             line = f.readline()
 finally:
-    # close files
     f.close()
     fNew.close()
